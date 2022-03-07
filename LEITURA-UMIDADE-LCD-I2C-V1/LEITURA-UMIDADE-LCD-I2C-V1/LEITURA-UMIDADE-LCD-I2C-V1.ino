@@ -45,9 +45,14 @@
 
 #include <LiquidCrystal_I2C.h> // LCD
 
+#include <OneWire.h>  
+
+#include <DallasTemperature.h>
 // =================================================================================
 
 // ---  mapeamento de hardware      --- //
+#define dados A2 
+
 // pino A2 pin 25   Sensor temperatura conversao A/D
 // pino A3 pin 26   Sensor umidade     conversao A/D
 // pino A4 pin 27   I2C SDA
@@ -62,9 +67,16 @@
 // Instancia é criar um objeto baseado em uma classe
 LiquidCrystal_I2C lcd(0x27,16,2);
 
+OneWire oneWire(dados);  /*Protocolo OneWire*/
+
+DallasTemperature sensors(&oneWire); /*encaminha referências OneWire para o sensor*/
 // --- Protótipo das Funções        --- //
 //Mensagem inicial do display.
 void inicio_display ();
+//Testa leitura sensor.
+void teste_sensor_temp ();
+// Conversão A/D via registradores extrair o máximo de resolução
+int ad_conversor();
 
 // =================================================================================
 // --- Configurações Iniciais SETUP --- //
@@ -76,6 +88,12 @@ void setup() {
    Serial.println("Nome arquivo:LEITURA-UMIDADE-LCD-I2C-V1...\n");
    lcd.init();          // iniciar display LCD
    inicio_display ();
+   sensors.begin(); /*inicia biblioteca*/
+   ADCSRA   =  0x93; // ou binário  1001 0011 pagina 262 define resolução
+   ADMUX    =  0x43;  // ou binário  0100 0011 // define o canal de entrada
+   // exemplo básico de conversão 
+   //T = { [(ADCH << 8) | ADCL] - TOS} /k 
+   // https://pdf1.alldatasheet.com/datasheet-pdf/view/313656/ATMEL/ATmega328P.html referencia técnica
   
 } // end setup
 // =================================================================================
@@ -83,6 +101,10 @@ void setup() {
 void loop() {
    wdt_reset            (     );
    //inicio_display ();
+   teste_sensor_temp ();
+   delay(500);
+   ad_conversor();
+   delay(500);
    
 } // end loop
 // =================================================================================
@@ -101,4 +123,32 @@ void inicio_display (){
   //lcd.setBacklight(HIGH);
   //delay(1000);
 }//inicio_display 
+// =================================================================================
+void teste_sensor_temp (){
+   sensors.requestTemperatures(); /* Envia o comando para leitura da temperatura */
+   lcd.clear();
+   lcd.setCursor(0,0);           // configura posição  do cursor
+   lcd.print("Leitura:");
+   lcd.setCursor(9,0);   
+   lcd.print(sensors.getTempCByIndex(0)); 
+   lcd.setCursor(14,0);   
+   lcd.print("C");
+   //delay(500);
+}// end teste_sensor_temp
+// =================================================================================
+int ad_conversor(){
+   static int  analogl,analogh,log;
+      ADCSRA   |=    (1<<ADSC);           // inicia a conversão!
+
+      while(!(ADCSRA    &=~(1<<ADIF)));   // Aguarda o final da conversão!
+
+      ADCSRA   |=    (1<<ADIF);           // limpa o ADIF na transição LOW /HIGH.
+
+      analogl  =  ADCL;                   // Armaz. o byte menos significativo.
+
+      analogh   =  ADCH;                   // Armaz. o byte mais  significativo.
+
+      log   =  (analogh<<8) | analogl;  // calcula o valor para 10 bits!
+     return log;
+}// end  int ad_conversor
  
