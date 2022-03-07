@@ -105,6 +105,16 @@ void loop() {
    delay(500);
    ad_conversor();
    delay(500);
+   // objetivos
+   /* 
+     
+   1  -  Fazer leitura de sinal anaógico.
+   2  -  Rotina que reconheça estabilidade no sinal entre intervalo de tempo.
+   3  -  Rotina que reconheça zero  estável pisca led 13.
+   4  -  Rotina que reconheça carga estável pisca led 13.
+   5  -  Apresentar no display leitura A/D convertida.
+   
+   */
    
 } // end loop
 // =================================================================================
